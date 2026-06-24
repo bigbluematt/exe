@@ -1,0 +1,39 @@
+name: Build EXE from Python
+
+on:
+  push:
+    paths:
+      - '**.py'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Find changed .py files and build EXEs
+        shell: pwsh
+        run: |
+          $changed = git diff --name-only HEAD~1 HEAD | Where-Object { $_ -match '\.py$' }
+          foreach ($file in $changed) {
+            Write-Host "Building EXE for: $file"
+            pyinstaller --onefile --distpath dist $file
+          }
+
+      - name: Upload EXE artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: executables
+          path: dist/*.exe
